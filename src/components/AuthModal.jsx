@@ -10,6 +10,7 @@ export function AuthModal({ onClose }) {
   const [mode, setMode] = useState('signin') // 'signin' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [usernameVal, setUsernameVal] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -20,10 +21,14 @@ export function AuthModal({ onClose }) {
       setError('Enter an email and a password of at least 6 characters.')
       return
     }
+    if (mode === 'signup') {
+      const u = validateUsername(usernameVal)
+      if (u.error) { setError(u.error); return }
+    }
     setBusy(true)
     try {
       if (mode === 'signup') {
-        const { needsConfirm } = await auth.signUpPassword(email.trim(), password)
+        const { needsConfirm } = await auth.signUpPassword(email.trim(), password, usernameVal.trim())
         if (needsConfirm) {
           toast.ok('Check your email to confirm your account, then sign in.')
           setMode('signin')
@@ -68,9 +73,16 @@ export function AuthModal({ onClose }) {
       <div className="or-divider"><span>or</span></div>
 
       <form onSubmit={submit}>
+        {mode === 'signup' && (
+          <div className="field">
+            <label>Username</label>
+            <input value={usernameVal} onChange={(e) => setUsernameVal(e.target.value)} autoFocus
+              placeholder="how you'll show up at the table" maxLength={20} />
+          </div>
+        )}
         <div className="field">
           <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus autoComplete="email" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus={mode === 'signin'} autoComplete="email" />
         </div>
         <div className="field">
           <label>Password</label>
@@ -93,6 +105,14 @@ export function AuthModal({ onClose }) {
       </div>
     </Modal>
   )
+}
+
+export function validateUsername(raw = '') {
+  const u = raw.trim()
+  if (u.length < 3) return { error: 'Username must be at least 3 characters.' }
+  if (u.length > 20) return { error: 'Username must be 20 characters or fewer.' }
+  if (!/^[a-zA-Z0-9_]+$/.test(u)) return { error: 'Use only letters, numbers, and underscores.' }
+  return { value: u }
 }
 
 function friendly(msg = '') {

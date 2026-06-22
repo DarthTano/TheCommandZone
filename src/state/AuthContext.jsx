@@ -27,14 +27,21 @@ export function AuthProvider({ children }) {
     return () => { active = false; sub.subscription.unsubscribe() }
   }, [])
 
+  // username lives in the auth user's metadata (no extra table needed)
+  const username = user?.user_metadata?.username || ''
+
   const api = {
     user,
     loading,
     isCloud,
+    username,
 
-    async signUpPassword(email, password) {
+    async signUpPassword(email, password, uname) {
       if (!isCloud) throw new Error(NO_CLOUD)
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: uname ? { username: uname.trim() } : {} },
+      })
       if (error) throw error
       // when "Confirm email" is on, there's no session yet
       return { needsConfirm: !data.session, session: data.session }
@@ -44,6 +51,13 @@ export function AuthProvider({ children }) {
       if (!isCloud) throw new Error(NO_CLOUD)
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+    },
+
+    async setUsername(uname) {
+      if (!isCloud) throw new Error(NO_CLOUD)
+      const { data, error } = await supabase.auth.updateUser({ data: { username: uname.trim() } })
+      if (error) throw error
+      setUser(data.user) // reflect the new username immediately
     },
 
     async signInGoogle() {

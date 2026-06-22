@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { GAME_MODE_LIST, GAME_MODES, COMMANDER_BRACKETS } from '../lib/formats.js'
 import { initTable, tableReducer, actions } from '../lib/gameTable.js'
 import { isCloud } from '../lib/supabase.js'
+import { useAuth } from '../state/AuthContext.jsx'
 import { useRoom } from '../state/useRoom.js'
 import { useTableCards } from '../state/useTableCards.js'
 import { GameTable } from '../components/GameTable.jsx'
@@ -9,12 +10,13 @@ import { GameTable } from '../components/GameTable.jsx'
 const LOCAL_STORE = 'manaforge.table.v1'
 const NAME_KEY = 'manaforge.playername'
 
-// stable per-tab identity for online play
-function useIdentity() {
+// stable per-tab identity for online play. Defaults the seat name to a saved
+// name, else the account username, else "Player".
+function useIdentity(defaultName) {
   const ref = useRef(null)
   if (!ref.current) {
     const key = (crypto.randomUUID?.() || Math.random().toString(36).slice(2))
-    ref.current = { key, name: localStorage.getItem(NAME_KEY) || 'Player' }
+    ref.current = { key, name: localStorage.getItem(NAME_KEY) || defaultName || 'Player' }
   }
   return ref.current
 }
@@ -27,7 +29,8 @@ const makeCode = () => {
 export function PlayPage() {
   // phase: 'setup' | { kind:'local', state? } | { kind:'online', code, isHost, name }
   const [phase, setPhase] = useState('setup')
-  const identity = useIdentity()
+  const auth = useAuth()
+  const identity = useIdentity(auth?.username)
   const [saved, setSaved] = useState(() => {
     try { return JSON.parse(localStorage.getItem(LOCAL_STORE) || 'null') } catch { return null }
   })
@@ -36,6 +39,7 @@ export function PlayPage() {
     return (
       <SetupScreen
         identity={identity}
+        username={auth?.username}
         saved={saved}
         onResume={() => setPhase({ kind: 'local', state: saved.state, bracket: saved.bracket })}
         onStartLocal={(cfg) => setPhase({ kind: 'local', state: initTable(cfg), bracket: cfg.bracket })}
@@ -54,13 +58,23 @@ export function PlayPage() {
 }
 
 // ---------------- setup ----------------
-function SetupScreen({ identity, saved, onResume, onStartLocal, onCreateOnline, onJoinOnline }) {
+function SetupScreen({ identity, username, saved, onResume, onStartLocal, onCreateOnline, onJoinOnline }) {
   const [modeKey, setModeKey] = useState('commander')
   const [count, setCount] = useState(4)
   const [bracket, setBracket] = useState(3)
   const [name, setName] = useState(identity.name)
   const [joinCode, setJoinCode] = useState('')
   const mode = GAME_MODES[modeKey]
+
+  // if the account username loads after mount and the user hasn't set a custom
+  // table name, adopt the username as the default seat name
+  useEffect(() => {
+    if (username && !localStorage.getItem(NAME_KEY) && (name === 'Player' || !name)) {
+      setName(username)
+      identity.name = username
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username])
 
   function persistName(n) {
     setName(n); identity.name = n; localStorage.setItem(NAME_KEY, n)
