@@ -25,20 +25,35 @@ Now signing up logs you straight in. (Leave it on if you'd rather verify emails 
 users just have to click the link in their inbox first.)
 
 ## 3. Google sign-in (optional)
-The "Continue with Google" button is already in the app; it works once you wire up
-the provider:
+The "Continue with Google" button is already in the app. Two halves: create
+credentials in Google Cloud, then paste them into Supabase.
 
-1. **Google Cloud Console** → create an **OAuth 2.0 Client ID** (type: Web app).
-   - Authorized redirect URI: your Supabase callback —
+### Part A — Google Cloud Console
+1. **console.cloud.google.com** → create or select a project.
+2. **APIs & Services → OAuth consent screen**:
+   - User type **External** → Create.
+   - App name, support email, developer email → save through the steps.
+   - Scopes: leave defaults (email, profile, openid).
+   - **Test users**: add you + friends' Google emails, OR click **Publish app**
+     on the consent-screen overview. Publishing with only basic scopes needs no
+     Google review and removes the "test users only" limit — recommended.
+3. **APIs & Services → Credentials → + Create Credentials → OAuth client ID**:
+   - Application type **Web application**.
+   - **Authorized redirect URIs** → add exactly:
      `https://nztuotaqcizfzruaiemf.supabase.co/auth/v1/callback`
-2. Copy the **Client ID** and **Client secret**.
-3. Supabase → **Authentication → Providers → Google** → enable it, paste the
-   Client ID + secret → Save.
-4. Supabase → **Authentication → URL Configuration**:
+   - Create → copy the **Client ID** and **Client secret**.
+
+### Part B — Supabase
+4. **Authentication → Providers → Google** → enable → paste Client ID + secret → Save.
+5. **Authentication → URL Configuration**:
    - **Site URL**: `https://the-command-zone-swdt.vercel.app`
-   - **Redirect URLs**: add both
-     `https://the-command-zone-swdt.vercel.app` and `http://localhost:5175`
-     (so login works in production and in local dev).
+   - **Redirect URLs** (the app redirects to `/decks` after login — wildcards cover it):
+     `https://the-command-zone-swdt.vercel.app/**`
+     `http://localhost:5175/**`
+
+Troubleshooting: a "redirect URI mismatch" means the URI in step 3 doesn't exactly
+match the Supabase callback. An "unverified app" warning in test mode is normal —
+publish the consent screen (step 2) to remove it.
 
 ## Notes
 - The app degrades gracefully: if the table doesn't exist yet, decks just stay in
