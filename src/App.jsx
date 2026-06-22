@@ -3,6 +3,8 @@ import { NavLink, Route, Routes, Navigate } from 'react-router-dom'
 import { DecksPage } from './pages/DecksPage.jsx'
 import { DeckBuilderPage } from './pages/DeckBuilderPage.jsx'
 import { PlayPage } from './pages/PlayPage.jsx'
+import { CompendiumPage } from './pages/CompendiumPage.jsx'
+import { CollectionPage } from './pages/CollectionPage.jsx'
 import { AuthModal } from './components/AuthModal.jsx'
 import { UsernameModal } from './components/UsernameModal.jsx'
 import { useAuth } from './state/AuthContext.jsx'
@@ -30,6 +32,8 @@ export default function App() {
         </div>
         <nav className="nav">
           <NavLink to="/decks" className={({ isActive }) => (isActive ? 'active' : '')}>Decks</NavLink>
+          <NavLink to="/compendium" className={({ isActive }) => (isActive ? 'active' : '')}>Compendium</NavLink>
+          <NavLink to="/collection" className={({ isActive }) => (isActive ? 'active' : '')}>Collection</NavLink>
           <NavLink to="/play" className={({ isActive }) => (isActive ? 'active' : '')}>Play</NavLink>
         </nav>
         <div className="spacer" />
@@ -43,6 +47,8 @@ export default function App() {
           <Route path="/" element={<Navigate to="/decks" replace />} />
           <Route path="/decks" element={<DecksPage />} />
           <Route path="/decks/:id" element={<DeckBuilderPage />} />
+          <Route path="/compendium" element={<CompendiumPage />} />
+          <Route path="/collection" element={<CollectionPage />} />
           <Route path="/play" element={<PlayPage />} />
           <Route path="*" element={<Navigate to="/decks" replace />} />
         </Routes>

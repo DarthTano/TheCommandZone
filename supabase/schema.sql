@@ -5,12 +5,17 @@
 -- Online PLAY needs no tables (it uses Realtime broadcast/presence only).
 -- This table exists solely so logged-in users can save their decks to the cloud.
 
--- One row per user holding all of that user's decks as a JSON blob.
+-- One row per user holding that user's decks (and owned-card collection) as
+-- JSON blobs.
 create table if not exists public.user_decks (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   decks      jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+-- Owned-card collection (added later; safe to run on an existing table).
+alter table public.user_decks
+  add column if not exists collection jsonb not null default '{}'::jsonb;
 
 -- Row Level Security: each user can only see/modify their own row.
 alter table public.user_decks enable row level security;

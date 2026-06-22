@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDecks, makeCardLookup } from '../state/DeckContext.jsx'
+import { useCollection } from '../state/CollectionContext.jsx'
 import { useToast } from '../state/ToastContext.jsx'
 import { useCardHover } from '../components/CardHover.jsx'
 import { ManaPips, IdentityBar } from '../components/ManaPips.jsx'
+import { OwnedBadge } from '../components/OwnedBadge.jsx'
 import { Modal } from '../components/Modal.jsx'
 import {
   searchCards, imageUris, primaryType, TYPE_GROUPS, colorIdentity,
@@ -112,7 +114,7 @@ function SearchColumn({ deck, decksApi, fmt, bind, toast }) {
           return (
             <div className="search-row" key={card.id}>
               <div className="nm" {...bind(card)}>
-                <div className="t">{card.name}</div>
+                <div className="t">{card.name} <OwnedBadge name={card.name} /></div>
                 <div className="s">{card.type_line} · {manaText(card)}</div>
               </div>
               {canCmd && (
@@ -210,11 +212,17 @@ function CardRow({ entry, deck, decksApi, fmt, bind, board = 'cards' }) {
 
 // ---------------- Stats / legality column ----------------
 function StatsColumn({ deck, fmt, entries, getCard, result, commanderCards, bind }) {
+  const coll = useCollection()
   const curve = useMemo(() => manaCurve(entries, getCard), [deck])
   const colors = useMemo(() => deckColorBreakdown(entries, getCard), [deck])
   const identity = fmt.commander ? commanderIdentity(commanderCards) : Object.keys(colors).filter((c) => c !== 'C' && colors[c])
   const maxBar = Math.max(1, ...curve)
   const art = commanderCards[0] ? imageUris(commanderCards[0]) : null
+
+  // how many of this deck's cards you own (capped per card)
+  const allEntries = [...entries, ...commanderCards.map((c) => ({ name: c.name, qty: 1 }))]
+  const totalNeeded = allEntries.reduce((s, e) => s + e.qty, 0)
+  const ownedHave = allEntries.reduce((s, e) => s + Math.min(coll?.ownedQty(e.name) || 0, e.qty), 0)
 
   return (
     <div className="panel stat-block">
@@ -235,6 +243,11 @@ function StatsColumn({ deck, fmt, entries, getCard, result, commanderCards, bind
             {result.violations.map((v, i) => <li key={`v${i}`}>✗ {v}</li>)}
             {result.warnings.map((w, i) => <li key={`w${i}`} className="warn">⚠ {w}</li>)}
           </ul>
+        )}
+        {totalNeeded > 0 && (
+          <div className="faint" style={{ fontSize: 12, marginTop: 6 }}>
+            🗃️ You own {ownedHave}/{totalNeeded} cards{ownedHave >= totalNeeded ? ' — full deck!' : ''}
+          </div>
         )}
       </div>
 

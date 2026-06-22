@@ -109,6 +109,32 @@ export async function namedCard(name) {
   return cacheCard(data)
 }
 
+// A single card by Scryfall id (used when picking a specific printing).
+export async function cardById(id) {
+  const data = await get(`/cards/${id}`)
+  if (data.notFound) return null
+  return cacheCard(data)
+}
+
+// Official rulings for a card (from its rulings_uri). Returns [{published_at, comment}].
+export async function getRulings(card) {
+  if (!card?.rulings_uri) return []
+  const path = card.rulings_uri.replace(API, '')
+  const data = await get(path)
+  return data.data || []
+}
+
+// Every printing of a card (from its prints_search_uri). Returns an array of
+// card objects (one per set), newest first. Capped to the first page (~175).
+export async function getPrintings(card) {
+  const uri = card?.prints_search_uri
+  if (!uri) return []
+  const path = uri.replace(API, '')
+  const data = await get(path)
+  ;(data.data || []).forEach(cacheCard)
+  return data.data || []
+}
+
 // Batch resolve up to 75 names at once via POST /cards/collection.
 // identifiers: array of names (strings). Returns { found: Map(nameKey->card), notFound: [names] }.
 export async function resolveCollection(names) {
