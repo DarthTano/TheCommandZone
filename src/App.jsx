@@ -66,8 +66,8 @@ function AuthControls({ onSignIn, onEditUsername }) {
   if (auth.user) {
     const label = auth.username || auth.user.email || 'Account'
     return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button className="ghost sm" title="Change username" onClick={onEditUsername}>
+      <span className="auth-controls" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button className="ghost sm auth-name" title="Change username" onClick={onEditUsername}>
           👤 {label}
         </button>
         <button className="ghost sm" onClick={() => auth.signOut()}>Sign out</button>

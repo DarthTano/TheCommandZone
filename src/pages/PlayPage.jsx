@@ -93,7 +93,7 @@ function SetupScreen({ identity, username, saved, onResume, onStartLocal, onCrea
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }} className="setup-grid">
+      <div className="setup-grid">
         {/* table rules */}
         <div className="panel">
           <div className="col-head">Table rules</div>
