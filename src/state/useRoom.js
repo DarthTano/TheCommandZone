@@ -60,7 +60,7 @@ export function useRoom({ code, identity, isHost, initialState }) {
       }
     })
 
-    channel.on('presence', { sync: true }, () => {
+    channel.on('presence', { event: 'sync' }, () => {
       const presence = channel.presenceState()
       const list = Object.entries(presence).map(([key, metas]) => ({ key, ...(metas[0] || {}) }))
       setMembers(list)
