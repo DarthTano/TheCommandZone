@@ -9,7 +9,14 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
+// Normalize the project URL: it must be the bare base (https://<ref>.supabase.co).
+// People often paste the REST endpoint (".../rest/v1") by mistake, which makes the
+// SDK build doubled paths like /rest/v1/auth/v1/authorize. Strip that + any
+// trailing slash so a paste error can't break auth/realtime.
+const rawUrl = import.meta.env.VITE_SUPABASE_URL
+const url = rawUrl
+  ? rawUrl.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '').replace(/\/+$/, '')
+  : rawUrl
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const isCloud = Boolean(url && anon)
