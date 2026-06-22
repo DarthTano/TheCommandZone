@@ -50,12 +50,7 @@ export function AuthProvider({ children }) {
       if (!isCloud) throw new Error(NO_CLOUD)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/decks',
-          // New-style Supabase API keys require the apikey on the OAuth authorize
-          // URL; supabase-js doesn't add it automatically, so pass it explicitly.
-          queryParams: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-        },
+        options: { redirectTo: window.location.origin + '/decks' },
       })
       if (error) throw error
     },
