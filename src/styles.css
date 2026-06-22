@@ -431,6 +431,45 @@ input:focus, textarea:focus, select:focus {
 .browse-card img, .browse-card .card-noimg { width: 100%; border-radius: 7px; display: block; }
 .browse-actions { display: flex; gap: 4px; margin-top: 4px; justify-content: center; }
 
+/* ---------- card scanner ---------- */
+.scanner {
+  position: fixed; inset: 0; z-index: 400; background: #0c0a08;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  overflow-y: auto;
+}
+.scan-head { display: flex; align-items: center; gap: 12px; }
+.scan-stage { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.scan-video-wrap { position: relative; width: 100%; max-width: 520px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 3/4; }
+.scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-guide { position: absolute; inset: 0; pointer-events: none; }
+.scan-band {
+  position: absolute; border: 2px solid var(--accent-2); border-radius: 6px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.scan-band span { font-size: 11px; color: var(--accent-2); background: rgba(0,0,0,0.5); padding: 1px 6px; border-radius: 10px; }
+.scan-camerr { text-align: center; color: var(--text-dim); padding: 40px 20px; max-width: 420px; margin: 0 auto; }
+.scan-camerr .big { font-size: 44px; margin-bottom: 10px; }
+
+.scan-status { text-align: center; font-size: 14px; color: var(--text-dim); }
+.scan-result { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 10px; max-width: 520px; margin: 0 auto; width: 100%; }
+.scan-result img { width: 90px; border-radius: 6px; }
+.scan-result-body { flex: 1; }
+.scan-alts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; max-width: 520px; margin: 0 auto; }
+
+.scan-controls { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.capture-btn { width: 64px; height: 64px; border-radius: 50%; font-size: 26px; background: var(--accent); color: #1a1208; border: 3px solid #fff3; }
+.capture-btn:hover { background: var(--accent-2); }
+
+.scan-manual { max-width: 520px; margin: 0 auto; width: 100%; position: relative; }
+.scan-manual input { width: 100%; }
+.scan-suggest { position: absolute; left: 0; right: 0; top: 100%; z-index: 5; background: var(--panel); border: 1px solid var(--border-2); border-radius: var(--radius-sm); margin-top: 2px; overflow: hidden; box-shadow: var(--shadow); }
+.scan-suggest button { display: block; width: 100%; text-align: left; background: transparent; border: none; border-radius: 0; padding: 8px 12px; font-size: 14px; }
+.scan-suggest button:hover { background: var(--panel-2); }
+
+.scan-added { display: flex; flex-wrap: wrap; gap: 6px; max-width: 520px; margin: 0 auto; width: 100%; }
+.link-x { background: transparent; border: none; color: var(--danger); padding: 0 2px; font-size: 12px; }
+
 /* ---------- compendium + collection ---------- */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .grid-card { position: relative; cursor: pointer; border-radius: 9px; transition: transform 0.1s; }

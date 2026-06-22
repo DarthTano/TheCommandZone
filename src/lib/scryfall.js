@@ -109,6 +109,16 @@ export async function namedCard(name) {
   return cacheCard(data)
 }
 
+// Fuzzy name lookup — tolerant of typos / OCR errors. Returns best match or null.
+export async function fuzzyNamed(text) {
+  if (!text || text.trim().length < 3) return null
+  const cached = getCachedCard(text)
+  if (cached) return cached
+  const data = await get(`/cards/named?fuzzy=${encodeURIComponent(text.trim())}`)
+  if (data.notFound || data.object === 'error') return null
+  return cacheCard(data)
+}
+
 // A single card by Scryfall id (used when picking a specific printing).
 export async function cardById(id) {
   const data = await get(`/cards/${id}`)

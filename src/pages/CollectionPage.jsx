@@ -4,6 +4,7 @@ import { useToast } from '../state/ToastContext.jsx'
 import { resolveCollection, imageUris, getCachedCard } from '../lib/scryfall.js'
 import { parsePasteList, parseCsv, resolveRows } from '../lib/collectionImport.js'
 import { CardDetailModal } from '../components/CardDetailModal.jsx'
+import { CardScanner } from '../components/CardScanner.jsx'
 import { Modal } from '../components/Modal.jsx'
 
 export function CollectionPage() {
@@ -13,6 +14,7 @@ export function CollectionPage() {
   const [filter, setFilter] = useState('')
   const [selected, setSelected] = useState(null)
   const [showPaste, setShowPaste] = useState(false)
+  const [showScan, setShowScan] = useState(false)
   const fileRef = useRef(null)
 
   const entries = useMemo(
@@ -69,6 +71,7 @@ export function CollectionPage() {
         <h1>Collection</h1>
         <span className="muted">{coll.uniqueCards} unique · {coll.totalCards} cards · ~${totalValue.toFixed(2)}</span>
         <div className="spacer" style={{ flex: 1 }} />
+        <button className="primary" onClick={() => setShowScan(true)}>📷 Scan cards</button>
         <button className="ghost" onClick={() => setShowPaste(true)}>⬆ Paste list</button>
         <button className="ghost" onClick={() => fileRef.current?.click()}>⬆ Upload CSV</button>
         <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={onCsv} />
@@ -78,8 +81,9 @@ export function CollectionPage() {
         <div className="empty">
           <div className="big">🗃️</div>
           <p>Your collection is empty. Paste a list, upload a CSV export, or add cards from the Compendium.</p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12 }}>
-            <button className="primary" onClick={() => setShowPaste(true)}>⬆ Paste a list</button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+            <button className="primary" onClick={() => setShowScan(true)}>📷 Scan cards</button>
+            <button className="ghost" onClick={() => setShowPaste(true)}>⬆ Paste a list</button>
             <button className="ghost" onClick={() => fileRef.current?.click()}>⬆ Upload CSV</button>
           </div>
         </div>
@@ -110,6 +114,7 @@ export function CollectionPage() {
       )}
 
       {showPaste && <PasteModal onClose={() => setShowPaste(false)} onImport={doImport} />}
+      {showScan && <CardScanner onClose={() => setShowScan(false)} />}
       {selected && <CardDetailModal card={selected} onClose={() => setSelected(null)} />}
     </div>
   )
