@@ -1,6 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getCachedCard } from '../lib/scryfall.js'
 import { DEFAULT_FORMAT } from '../lib/formats.js'
+import { supabase, isCloud } from '../lib/supabase.js'
+import { useAuth } from './AuthContext.jsx'
+import { useToast } from './ToastContext.jsx'
 
 const STORE_KEY = 'manaforge.decks.v1'
 const DeckCtx = createContext(null)
@@ -33,14 +36,75 @@ function blankDeck(name, format = DEFAULT_FORMAT) {
 
 export function DeckProvider({ children }) {
   const [decks, setDecks] = useState(load)
+  const auth = useAuth()
+  const toast = useToast()
+  const userId = auth?.user?.id || null
 
+  // hydrating = we're loading decks from the cloud, so don't echo them back up
+  const hydrating = useRef(false)
+  const tableMissing = useRef(false)
+  const saveTimer = useRef(null)
+
+  // --- swap backing store when auth changes (login loads + merges cloud decks) ---
   useEffect(() => {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ decks }))
-    } catch {
-      /* quota */
+    hydrating.current = true // set synchronously so the save effect skips this pass
+    let cancelled = false
+
+    async function loadCloud() {
+      try {
+        const { data, error } = await supabase
+          .from('user_decks').select('decks').eq('user_id', userId).maybeSingle()
+        if (error) throw error
+        if (cancelled) return
+        tableMissing.current = false
+        const cloudDecks = Array.isArray(data?.decks) ? data.decks : []
+        // first-login import: keep any local decks whose ids aren't already in the cloud
+        const cloudIds = new Set(cloudDecks.map((d) => d.id))
+        const toImport = load().filter((d) => !cloudIds.has(d.id))
+        const merged = [...toImport, ...cloudDecks]
+        setDecks(merged)
+        if (toImport.length || !data) {
+          await supabase.from('user_decks').upsert({
+            user_id: userId, decks: merged, updated_at: new Date().toISOString(),
+          })
+          if (toImport.length) toast.ok(`Imported ${toImport.length} local deck${toImport.length === 1 ? '' : 's'} to your account.`)
+        }
+      } catch (e) {
+        if (cancelled) return
+        tableMissing.current = /relation|does not exist|schema cache|find the table|user_decks/i.test(e?.message || '')
+        toast.err(tableMissing.current
+          ? 'Run the migration (supabase/schema.sql) to save decks to your account.'
+          : 'Could not load your cloud decks — using this device for now.')
+      } finally {
+        if (!cancelled) hydrating.current = false
+      }
     }
-  }, [decks])
+
+    if (userId && isCloud) {
+      loadCloud()
+    } else {
+      // guest / signed out → show this browser's local decks
+      setDecks(load())
+      hydrating.current = false
+    }
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  // --- persist: cloud when logged in (debounced), localStorage otherwise ---
+  useEffect(() => {
+    if (hydrating.current) return
+    if (userId && isCloud && !tableMissing.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = setTimeout(() => {
+        supabase.from('user_decks')
+          .upsert({ user_id: userId, decks, updated_at: new Date().toISOString() })
+          .then(({ error }) => { if (error) { /* keep working; retry on next change */ } })
+      }, 600)
+    } else {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify({ decks })) } catch { /* quota */ }
+    }
+  }, [decks, userId])
 
   const mutate = useCallback((id, fn) => {
     setDecks((list) =>

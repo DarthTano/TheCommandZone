@@ -431,6 +431,10 @@ input:focus, textarea:focus, select:focus {
 .browse-card img, .browse-card .card-noimg { width: 100%; border-radius: 7px; display: block; }
 .browse-actions { display: flex; gap: 4px; margin-top: 4px; justify-content: center; }
 
+/* auth modal divider */
+.or-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; color: var(--text-faint); font-size: 12px; }
+.or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
 /* phase stepper + rules toggle */
 .phase-strip { display: flex; gap: 4px; }
 .phase-dot {
