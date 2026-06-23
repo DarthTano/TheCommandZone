@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useCollection } from '../state/CollectionContext.jsx'
+import { useCollection, BINS } from '../state/CollectionContext.jsx'
 import { useToast } from '../state/ToastContext.jsx'
-import { resolveCollection, imageUris, getCachedCard } from '../lib/scryfall.js'
+import { resolveCollection, imageUris, getCachedCard, primaryType, cardCmc, colorIdentity } from '../lib/scryfall.js'
 import { parsePasteList, parseCsv, resolveRows } from '../lib/collectionImport.js'
 import { CardDetailModal } from '../components/CardDetailModal.jsx'
 import { CardScanner } from '../components/CardScanner.jsx'
@@ -12,15 +12,24 @@ export function CollectionPage() {
   const toast = useToast()
   const [resolved, setResolved] = useState({}) // nameKey -> card
   const [filter, setFilter] = useState('')
+  const [sort, setSort] = useState('name')
+  const [bin, setBin] = useState('all')
   const [selected, setSelected] = useState(null)
   const [showPaste, setShowPaste] = useState(false)
   const [showScan, setShowScan] = useState(false)
   const fileRef = useRef(null)
 
   const entries = useMemo(
-    () => Object.entries(coll.cards).map(([k, e]) => ({ k, ...e })).sort((a, b) => a.name.localeCompare(b.name)),
+    () => Object.entries(coll.cards).map(([k, e]) => ({ k, bin: e.bin || 'unsorted', ...e })),
     [coll.cards],
   )
+
+  // counts per bin (for the filter chips)
+  const binCounts = useMemo(() => {
+    const m = { all: 0 }
+    for (const e of entries) { m.all += e.qty; m[e.bin] = (m[e.bin] || 0) + e.qty }
+    return m
+  }, [entries])
 
   // resolve card data (images/prices) for owned cards, batched + cached
   useEffect(() => {
@@ -42,9 +51,24 @@ export function CollectionPage() {
     return s + p * e.qty
   }, 0)
 
-  const shown = filter.trim()
-    ? entries.filter((e) => e.name.toLowerCase().includes(filter.trim().toLowerCase()))
-    : entries
+  const unitPrice = (e) => parseFloat((resolved[e.k] || getCachedCard(e.name))?.prices?.usd) || 0
+  const shown = useMemo(() => {
+    const q = filter.trim().toLowerCase()
+    let list = entries.filter((e) =>
+      (bin === 'all' || e.bin === bin) && (!q || e.name.toLowerCase().includes(q)))
+    const card = (e) => resolved[e.k] || getCachedCard(e.name)
+    const cmp = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      qty: (a, b) => b.qty - a.qty || a.name.localeCompare(b.name),
+      value: (a, b) => (unitPrice(b) * b.qty) - (unitPrice(a) * a.qty),
+      price: (a, b) => unitPrice(b) - unitPrice(a),
+      color: (a, b) => (colorIdentity(card(a)).join('') || 'Z').localeCompare(colorIdentity(card(b)).join('') || 'Z') || a.name.localeCompare(b.name),
+      type: (a, b) => (primaryType(card(a)) || 'Z').localeCompare(primaryType(card(b)) || 'Z') || a.name.localeCompare(b.name),
+      cmc: (a, b) => cardCmc(card(a)) - cardCmc(card(b)) || a.name.localeCompare(b.name),
+    }
+    return [...list].sort(cmp[sort] || cmp.name)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, filter, bin, sort, resolved])
 
   async function onCsv(e) {
     const file = e.target.files?.[0]
@@ -89,8 +113,32 @@ export function CollectionPage() {
         </div>
       ) : (
         <>
-          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter your collection…"
-            style={{ width: '100%', marginBottom: 14 }} />
+          {/* bin filter chips */}
+          <div className="bin-chips">
+            <button className={`bin-chip${bin === 'all' ? ' on' : ''}`} onClick={() => setBin('all')}>All <b>{binCounts.all || 0}</b></button>
+            {BINS.map((b) => (
+              <button key={b.key} className={`bin-chip${bin === b.key ? ' on' : ''}`} onClick={() => setBin(b.key)}>
+                {b.icon} {b.label} <b>{binCounts[b.key] || 0}</b>
+              </button>
+            ))}
+          </div>
+
+          <div className="coll-toolbar">
+            <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter…" style={{ flex: 1 }} />
+            <label className="sort-by">
+              Sort
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="name">Name</option>
+                <option value="qty">Quantity</option>
+                <option value="value">Total value</option>
+                <option value="price">Unit price</option>
+                <option value="color">Color</option>
+                <option value="type">Type</option>
+                <option value="cmc">Mana value</option>
+              </select>
+            </label>
+          </div>
+
           <div className="card-grid">
             {shown.map((e) => {
               const card = resolved[e.k] || getCachedCard(e.name)
@@ -106,10 +154,14 @@ export function CollectionPage() {
                     <button className="ghost icon sm" onClick={() => coll.add(e.name, 1)}>+</button>
                     <button className="ghost icon sm danger" title="Remove" onClick={() => coll.remove(e.name)}>✕</button>
                   </div>
+                  <select className="bin-select" value={e.bin} onChange={(ev) => coll.setBin(e.name, ev.target.value)} title="Move to bin">
+                    {BINS.map((b) => <option key={b.key} value={b.key}>{b.icon} {b.label}</option>)}
+                  </select>
                 </div>
               )
             })}
           </div>
+          {shown.length === 0 && <div className="faint" style={{ textAlign: 'center', padding: 24 }}>Nothing in this bin{filter ? ' matching your filter' : ''}.</div>}
         </>
       )}
 

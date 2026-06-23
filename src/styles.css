@@ -488,6 +488,20 @@ input:focus, textarea:focus, select:focus {
 .filter-pip { cursor: pointer; opacity: 0.4; border: 1px solid var(--border-2); transition: opacity 0.1s, transform 0.1s; }
 .filter-pip.on { opacity: 1; transform: scale(1.12); box-shadow: 0 0 0 2px var(--accent); }
 
+.bin-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.bin-chip {
+  font-size: 13px; padding: 5px 11px; border-radius: 20px;
+  background: var(--panel-2); border: 1px solid var(--border-2); color: var(--text-dim);
+}
+.bin-chip b { color: var(--text); font-weight: 700; margin-left: 2px; }
+.bin-chip.on { background: var(--accent); border-color: var(--accent); color: #1a1208; }
+.bin-chip.on b { color: #1a1208; }
+
+.coll-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.sort-by { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+
+.bin-select { width: 100%; margin-top: 4px; font-size: 12px; padding: 4px 6px; }
+
 .coll-card { display: flex; flex-direction: column; }
 .coll-card > div:first-child { cursor: pointer; }
 .coll-qty { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 5px; }

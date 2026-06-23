@@ -12,6 +12,16 @@ const STORE_KEY = 'manaforge.collection.v1'
 const CollCtx = createContext(null)
 export const useCollection = () => useContext(CollCtx)
 
+// Bins a card can be filed under (single bin per card).
+export const BINS = [
+  { key: 'unsorted', label: 'Unsorted', icon: '📥' },
+  { key: 'deck', label: 'In a deck', icon: '🃏' },
+  { key: 'want', label: 'Want', icon: '⭐' },
+  { key: 'bulk', label: 'Bulk', icon: '📦' },
+  { key: 'trade', label: 'Trade', icon: '🔁' },
+]
+export const binLabel = (key) => BINS.find((b) => b.key === key)?.label || 'Unsorted'
+
 const nameKey = (n) => (n || '').trim().toLowerCase()
 
 function load() {
@@ -88,31 +98,39 @@ export function CollectionProvider({ children }) {
   }, [cards, userId])
 
   const api = useMemo(() => {
+    // preserve a card's existing bin through edits (default 'unsorted')
+    const keep = (entry, name, patch) => ({ name: entry?.name || name, bin: entry?.bin || 'unsorted', ...entry, ...patch })
     const setQty = (name, qty) => setCards((c) => {
       const k = nameKey(name)
       const next = { ...c }
       if (qty <= 0) delete next[k]
-      else next[k] = { name: next[k]?.name || name, qty }
+      else next[k] = keep(next[k], name, { qty })
       return next
     })
     return {
       cards,
       ownedQty: (name) => cards[nameKey(name)]?.qty || 0,
+      binOf: (name) => cards[nameKey(name)]?.bin || 'unsorted',
       totalCards: Object.values(cards).reduce((s, e) => s + e.qty, 0),
       uniqueCards: Object.keys(cards).length,
       setQty,
+      setBin: (name, bin) => setCards((c) => {
+        const k = nameKey(name)
+        if (!c[k]) return c
+        return { ...c, [k]: { ...c[k], bin } }
+      }),
       add: (name, qty = 1) => setCards((c) => {
         const k = nameKey(name)
         const cur = c[k]?.qty || 0
-        return { ...c, [k]: { name: c[k]?.name || name, qty: cur + qty } }
+        return { ...c, [k]: keep(c[k], name, { qty: cur + qty }) }
       }),
       remove: (name) => setQty(name, 0),
-      // bulk import: add entries (sum quantities)
+      // bulk import: add entries (sum quantities, keep existing bins)
       mergeList: (entries) => setCards((c) => {
         const next = { ...c }
         for (const e of entries) {
           const k = nameKey(e.name)
-          next[k] = { name: next[k]?.name || e.name, qty: (next[k]?.qty || 0) + (e.qty || 1) }
+          next[k] = keep(next[k], e.name, { qty: (next[k]?.qty || 0) + (e.qty || 1) })
         }
         return next
       }),
