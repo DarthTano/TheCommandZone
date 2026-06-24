@@ -22,6 +22,28 @@ export async function recognizeTitle(image) {
   return cleanTitle(data.text || '')
 }
 
+// Raw OCR text (for the set/collector strip).
+export async function recognizeText(image) {
+  const worker = await getWorker()
+  const { data } = await worker.recognize(image)
+  return data.text || ''
+}
+
+// Best-effort parse of a card's bottom-left line(s) → { set, number }.
+// Modern frames read like "0123/0456 C" then "M21 • EN • <artist>". We pull the
+// 3–5 char set code and the collector number.
+export function parseSetCollector(raw = '') {
+  const text = raw.toUpperCase().replace(/[|]/g, '')
+  // collector number: digits, optionally NNN/NNN (take the first group)
+  const numMatch = text.match(/\b(\d{1,4})\s*\/\s*\d{1,4}\b/) || text.match(/\b(\d{1,4})\b/)
+  // set code: a 3–5 char token of letters/digits that isn't purely digits and isn't "EN"
+  const tokens = text.match(/\b[A-Z0-9]{3,5}\b/g) || []
+  const setCode = tokens.find((t) => /[A-Z]/.test(t) && !/^\d+$/.test(t) && t !== 'EN' && t !== 'ENG')
+  const number = numMatch ? numMatch[1].replace(/^0+(?=\d)/, '') : null
+  if (!setCode || !number) return null
+  return { set: setCode, number }
+}
+
 // Card names are letters + spaces + a few punctuation marks. Take the longest
 // plausible line and strip OCR noise.
 export function cleanTitle(raw = '') {

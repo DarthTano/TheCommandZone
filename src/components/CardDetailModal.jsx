@@ -85,7 +85,7 @@ export function CardDetailModal({ card: initial, onClose }) {
                 <div className="cd-coll">
                   <span className="faint">Owned: {owned}</span>
                   <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, +e.target.value || 1))} style={{ width: 56 }} />
-                  <button className="sm" onClick={() => { coll.add(card.name, qty); toast.ok(`Added ${qty}× ${card.name} to collection.`) }}>+ Collection</button>
+                  <button className="sm" onClick={() => { coll.addPrinting(card, { qty }); toast.ok(`Added ${qty}× ${card.name} to collection.`) }}>+ Collection</button>
                 </div>
                 <select defaultValue="" onChange={(e) => {
                   const d = decks.getDeck(e.target.value); if (!d) return

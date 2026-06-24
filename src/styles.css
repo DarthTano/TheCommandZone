@@ -243,6 +243,19 @@ input:focus, textarea:focus, select:focus {
 }
 .commander-slot img { width: 100%; border-radius: 8px; display: block; }
 
+/* full-screen tap-to-dismiss enlarged card (touch + explicit View) */
+.card-zoom {
+  position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: zoomin 0.12s ease;
+}
+.card-zoom img { max-width: min(94vw, 460px); max-height: 90vh; border-radius: 14px; box-shadow: var(--shadow); }
+.card-zoom-x {
+  position: fixed; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 50%;
+  font-size: 18px; background: rgba(0,0,0,0.6); border: 1px solid var(--border-2); color: #fff;
+}
+@keyframes zoomin { from { opacity: 0; } }
+
 /* card preview popover */
 .card-preview {
   position: fixed; z-index: 200; pointer-events: none;
@@ -456,6 +469,10 @@ input:focus, textarea:focus, select:focus {
 .scan-result img { width: 90px; border-radius: 6px; }
 .scan-result-body { flex: 1; }
 .scan-alts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; max-width: 520px; margin: 0 auto; }
+.scan-result img.foil { box-shadow: 0 0 0 2px var(--accent-2), 0 0 12px rgba(244,184,96,0.5); }
+.scan-prints { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; padding-bottom: 4px; }
+.scan-prints img { width: 54px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; flex: none; }
+.scan-prints img.sel { border-color: var(--accent); }
 
 .scan-controls { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .capture-btn { width: 64px; height: 64px; border-radius: 50%; font-size: 26px; background: var(--accent); color: #1a1208; border: 3px solid #fff3; }
@@ -503,9 +520,15 @@ input:focus, textarea:focus, select:focus {
 .bin-select { width: 100%; margin-top: 4px; font-size: 12px; padding: 4px 6px; }
 
 .coll-card { display: flex; flex-direction: column; }
-.coll-card > div:first-child { cursor: pointer; }
-.coll-qty { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 5px; }
-.coll-qty span { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.coll-img { cursor: pointer; position: relative; }
+.coll-card.is-foil .coll-img img { box-shadow: 0 0 0 2px var(--accent-2), 0 0 12px rgba(244,184,96,0.4); border-radius: 9px; }
+.foil-badge { position: absolute; top: 6px; left: 6px; font-size: 14px; filter: drop-shadow(0 0 2px #000); }
+.coll-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; margin-top: 4px; }
+.link-btn { background: none; border: none; color: var(--link); padding: 0; font-size: 11px; }
+.link-btn:hover { color: var(--accent-2); text-decoration: underline; }
+.coll-qty { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+.coll-qty span { min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.coll-qty .foil-on { color: var(--accent-2); border-color: var(--accent-2); }
 
 /* card detail modal */
 .cd-grid { display: grid; grid-template-columns: 240px 1fr; gap: 18px; }

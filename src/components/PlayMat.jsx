@@ -12,7 +12,8 @@ import { actions } from '../lib/gameTable.js'
 // The play surface. Opponents render read-only across the top; the seat you
 // control renders interactive at the bottom with your hand + zone controls.
 export function PlayMat({ state, act, cards, controlledPids, online }) {
-  const { preview, bind } = useCardHover()
+  const { preview, bind, zoom } = useCardHover()
+  const viewCard = (inst) => zoom({ name: inst.name, image_uris: { normal: inst.img, large: inst.img } })
   const [browse, setBrowse] = useState(null) // { pid, zone }
   const [landPrompt, setLandPrompt] = useState(null) // { pid, iid, name }
 
@@ -83,7 +84,7 @@ export function PlayMat({ state, act, cards, controlledPids, online }) {
       {preview}
       <div className="opp-boards">
         {opponents.map((p) => (
-          <OpponentBoard key={p.id} p={p} bind={bind} onBrowse={(zone) => setBrowse({ pid: p.id, zone })} />
+          <OpponentBoard key={p.id} p={p} bind={bind} onView={viewCard} onBrowse={(zone) => setBrowse({ pid: p.id, zone })} />
         ))}
       </div>
 
@@ -94,6 +95,7 @@ export function PlayMat({ state, act, cards, controlledPids, online }) {
           cards={cards}
           act={act}
           bind={bind}
+          onView={viewCard}
           onAction={handleAction}
           onDrop={handleDrop}
           onBrowse={(zone) => setBrowse({ pid: mePid, zone })}
@@ -132,7 +134,7 @@ export function PlayMat({ state, act, cards, controlledPids, online }) {
 }
 
 // ---------------- opponent (read-only) ----------------
-function OpponentBoard({ p, bind, onBrowse }) {
+function OpponentBoard({ p, bind, onView, onBrowse }) {
   if (!p.loaded) {
     return <div className="board opp"><div className="board-head"><span className="dot" style={{ background: p.color }} />{p.name}<span className="faint" style={{ marginLeft: 6 }}>· no deck loaded</span></div></div>
   }
@@ -147,7 +149,7 @@ function OpponentBoard({ p, bind, onBrowse }) {
         {p.zones.battlefield.length === 0
           ? <span className="faint" style={{ fontSize: 12 }}>empty battlefield</span>
           : p.zones.battlefield.map((c) => (
-              <Card key={c.iid} inst={c} zone={ZONES.BATTLEFIELD} controllable={false} bind={bind} size="sm" />
+              <Card key={c.iid} inst={c} zone={ZONES.BATTLEFIELD} controllable={false} bind={bind} onView={onView} size="sm" />
             ))}
       </div>
     </div>
@@ -155,7 +157,7 @@ function OpponentBoard({ p, bind, onBrowse }) {
 }
 
 // ---------------- me (interactive) ----------------
-function MyBoard({ me, mePid, cards, act, bind, onAction, onDrop, onBrowse }) {
+function MyBoard({ me, mePid, cards, act, bind, onView, onAction, onDrop, onBrowse }) {
   const priv = cards.getPrivate(mePid)
   const dropProps = (zone) => ({
     onDragOver: (e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over') },
@@ -183,7 +185,7 @@ function MyBoard({ me, mePid, cards, act, bind, onAction, onDrop, onBrowse }) {
         {me.zones.battlefield.length === 0
           ? <span className="faint drop-hint">Battlefield — play or drag cards here</span>
           : me.zones.battlefield.map((c) => (
-              <Card key={c.iid} inst={c} zone={ZONES.BATTLEFIELD} controllable bind={bind}
+              <Card key={c.iid} inst={c} zone={ZONES.BATTLEFIELD} controllable bind={bind} onView={onView}
                 onAction={(t, a) => onAction(mePid, ZONES.BATTLEFIELD, c.iid, t, a)} />
             ))}
       </div>
@@ -207,7 +209,7 @@ function MyBoard({ me, mePid, cards, act, bind, onAction, onDrop, onBrowse }) {
           {priv.hand.length === 0
             ? <span className="faint" style={{ fontSize: 13 }}>No cards in hand — draw from your library.</span>
             : priv.hand.map((c) => (
-                <Card key={c.iid} inst={c} zone={ZONES.HAND} controllable bind={bind}
+                <Card key={c.iid} inst={c} zone={ZONES.HAND} controllable bind={bind} onView={onView}
                   onAction={(t, a) => onAction(mePid, ZONES.HAND, c.iid, t, a)} />
               ))}
         </div>

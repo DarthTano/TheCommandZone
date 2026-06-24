@@ -4,11 +4,13 @@ import { ZONES, ZONE_LABELS } from '../lib/cardEngine.js'
 // One card on the table. `zone` is where it currently lives; `controllable`
 // means this client owns the seat and may act on it. `onAction(type, arg)`
 // bubbles intents to the play mat. Supports drag (HTML5) + a click menu.
-export function Card({ inst, zone, controllable, onAction, bind, size = 'md' }) {
+export function Card({ inst, zone, controllable, onAction, onView, bind, size = 'md' }) {
   const [menu, setMenu] = useState(false)
 
-  const handleClick = () => {
-    if (!controllable) return
+  const handleClick = (e) => {
+    e?.stopPropagation() // don't let the card's bind() onClick (touch zoom) also fire
+    // not yours → just enlarge it (no actions to take)
+    if (!controllable) { onView?.(inst); return }
     // single click on a battlefield card = tap/untap (most common action)
     if (zone === ZONES.BATTLEFIELD) onAction('tap')
     else setMenu((m) => !m)
@@ -40,13 +42,14 @@ export function Card({ inst, zone, controllable, onAction, bind, size = 'md' }) 
       )}
 
       {menu && controllable && (
-        <CardMenu inst={inst} zone={zone} onPick={(type, arg) => { setMenu(false); onAction(type, arg) }} onClose={() => setMenu(false)} />
+        <CardMenu inst={inst} zone={zone} onView={onView}
+          onPick={(type, arg) => { setMenu(false); onAction(type, arg) }} onClose={() => setMenu(false)} />
       )}
     </div>
   )
 }
 
-function CardMenu({ inst, zone, onPick, onClose }) {
+function CardMenu({ inst, zone, onPick, onView, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
     const away = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
@@ -55,7 +58,7 @@ function CardMenu({ inst, zone, onPick, onClose }) {
   }, [onClose])
 
   // build the action list based on the current zone
-  const items = []
+  const items = [{ label: '🔍 View', fn: () => { onClose(); onView?.(inst) } }]
   const moveTo = (z, label) => items.push({ label: label || `→ ${ZONE_LABELS[z]}`, fn: () => onPick('move', z) })
 
   if (zone === ZONES.HAND) {

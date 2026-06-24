@@ -45,17 +45,22 @@ function saveCache() {
 }
 const nameKey = (n) => (n || '').trim().toLowerCase()
 
+const idCache = new Map() // in-memory: scryfall printing id -> card (for resolveByIds)
 function cacheCard(card) {
   if (!card || !card.name) return card
   const c = loadCache()
   c[nameKey(card.name)] = card
   // double-faced cards are also searchable by their front face name
   if (card.card_faces?.[0]?.name) c[nameKey(card.card_faces[0].name)] = card
+  if (card.id) idCache.set(card.id, card)
   saveCache()
   return card
 }
 export function getCachedCard(name) {
   return loadCache()[nameKey(name)] || null
+}
+export function getCachedById(id) {
+  return idCache.get(id) || null
 }
 
 // ---- shape we care about; keep full card too for previews ----
@@ -132,6 +137,35 @@ export async function cardById(id) {
   const data = await get(`/cards/${id}`)
   if (data.notFound) return null
   return cacheCard(data)
+}
+
+// Exact printing by set code + collector number (used by the scanner).
+export async function cardBySetNumber(set, number) {
+  if (!set || !number) return null
+  const data = await get(`/cards/${encodeURIComponent(String(set).toLowerCase())}/${encodeURIComponent(String(number))}`)
+  if (data.notFound || data.object === 'error') return null
+  return cacheCard(data)
+}
+
+// Batch-resolve specific printings by Scryfall id. Returns Map(id -> card).
+export async function resolveByIds(ids) {
+  const found = new Map()
+  const pending = []
+  for (const id of ids) { const c = getCachedById(id); if (c) found.set(id, c); else pending.push(id) }
+  for (let i = 0; i < pending.length; i += 75) {
+    const chunk = pending.slice(i, i + 75)
+    const data = await throttled(async () => {
+      const res = await fetch(`${API}/cards/collection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ identifiers: chunk.map((id) => ({ id })) }),
+      })
+      if (!res.ok) throw new Error(`Scryfall collection ${res.status}`)
+      return res.json()
+    })
+    ;(data.data || []).forEach((card) => { cacheCard(card); found.set(card.id, card) })
+  }
+  return found
 }
 
 // Official rulings for a card (from its rulings_uri). Returns [{published_at, comment}].

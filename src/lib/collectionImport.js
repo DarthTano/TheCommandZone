@@ -54,20 +54,19 @@ function splitCsvRows(text) {
   return rows.filter((r) => r.some((f) => f.trim() !== ''))
 }
 
-// Resolve raw rows against Scryfall; aggregate duplicates by canonical name.
-// Returns { entries: [{name, qty}], unresolved: [name] }.
+// Resolve raw rows against Scryfall; aggregate duplicates by card.
+// Returns { entries: [{card, qty}], unresolved: [name] } (default printing, non-foil).
 export async function resolveRows(rows) {
   const wanted = [...new Set(rows.map((r) => r.name))]
   const { found, notFound } = await resolveCollection(wanted)
-  const byName = new Map() // canonicalName -> qty
+  const byCard = new Map() // card.id -> { card, qty }
   const unresolved = [...notFound]
   for (const r of rows) {
     const card = found.get(r.name.trim().toLowerCase())
     if (!card) { if (!unresolved.includes(r.name)) unresolved.push(r.name); continue }
-    byName.set(card.name, (byName.get(card.name) || 0) + (r.qty || 1))
+    const cur = byCard.get(card.id)
+    if (cur) cur.qty += r.qty || 1
+    else byCard.set(card.id, { card, qty: r.qty || 1 })
   }
-  return {
-    entries: [...byName.entries()].map(([name, qty]) => ({ name, qty })),
-    unresolved: [...new Set(unresolved)],
-  }
+  return { entries: [...byCard.values()], unresolved: [...new Set(unresolved)] }
 }
