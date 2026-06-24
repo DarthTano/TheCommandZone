@@ -7,19 +7,40 @@ import { ImportModal } from '../components/ImportModal.jsx'
 import { ManaPips } from '../components/ManaPips.jsx'
 import { FORMATS, FORMAT_LIST, DEFAULT_FORMAT, validateDeck, commanderIdentity, deckColorBreakdown } from '../lib/formats.js'
 import { imageUris } from '../lib/scryfall.js'
+import { generateRandomCommanderDeck } from '../lib/randomDeck.js'
 
 export function DecksPage() {
-  const { decks, createDeck, deleteDeck, duplicateDeck } = useDecks()
+  const { decks, createDeck, importDeck, deleteDeck, duplicateDeck } = useDecks()
   const nav = useNavigate()
   const toast = useToast()
   const [showNew, setShowNew] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [rolling, setRolling] = useState(false)
+
+  async function rollRandom() {
+    if (rolling) return
+    setRolling(true)
+    toast.toast('Rolling up a random Commander deck…')
+    try {
+      const result = await generateRandomCommanderDeck()
+      const id = importDeck(result.name, 'commander', result)
+      toast.ok(`Built "${result.name}".`)
+      nav(`/decks/${id}`)
+    } catch (e) {
+      toast.err(`Couldn’t build a random deck: ${e.message}`)
+    } finally {
+      setRolling(false)
+    }
+  }
 
   return (
     <div>
       <div className="page-head">
         <h1>Your Decks</h1>
         <div className="spacer" />
+        <button className="ghost" onClick={rollRandom} disabled={rolling}>
+          {rolling ? <><span className="spin">⟳</span> Rolling…</> : '🎲 Random deck'}
+        </button>
         <button className="ghost" onClick={() => setShowImport(true)}>⬆ Import list</button>
         <button className="primary" onClick={() => setShowNew(true)}>+ New deck</button>
       </div>

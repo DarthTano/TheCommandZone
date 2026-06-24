@@ -77,10 +77,10 @@ async function get(path) {
 }
 
 // Full text search. Returns { cards, total, hasMore, nextPage }.
-export async function searchCards(query, { page = 1 } = {}) {
+export async function searchCards(query, { page = 1, order = 'name', dir = 'auto' } = {}) {
   if (!query || !query.trim()) return { cards: [], total: 0, hasMore: false }
   const q = encodeURIComponent(query.trim())
-  const data = await get(`/cards/search?q=${q}&unique=cards&order=name&page=${page}`)
+  const data = await get(`/cards/search?q=${q}&unique=cards&order=${order}&dir=${dir}&page=${page}`)
   if (data.notFound || data.object === 'error') {
     return { cards: [], total: 0, hasMore: false }
   }
@@ -91,6 +91,14 @@ export async function searchCards(query, { page = 1 } = {}) {
     hasMore: !!data.has_more,
     page,
   }
+}
+
+// A single random card matching a query (Scryfall /cards/random?q=).
+export async function randomCard(query = '') {
+  const q = query ? `?q=${encodeURIComponent(query.trim())}` : ''
+  const data = await get(`/cards/random${q}`)
+  if (data.notFound || data.object === 'error') return null
+  return cacheCard(data)
 }
 
 // Autocomplete card names (fast, for type-ahead).
