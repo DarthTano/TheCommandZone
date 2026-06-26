@@ -146,13 +146,14 @@ export function CollectionPage() {
                   </div>
                   <div className="coll-meta">
                     <span className="faint">{(e.set || '').toUpperCase()}{e.collector ? ` #${e.collector}` : ''}</span>
-                    <button className="link-btn" onClick={() => setChangeArt(e)}>change art</button>
+                    <span className="spacer" style={{ flex: 1 }} />
+                    <button className={`mini-btn${e.foil ? ' foil-on' : ''}`} title="Toggle foil" onClick={() => coll.setFoil(e.key, !e.foil)}>✨</button>
+                    <button className="link-btn" onClick={() => setChangeArt(e)}>art</button>
                   </div>
                   <div className="coll-qty">
                     <button className="ghost icon sm" onClick={() => coll.setQty(e.key, e.qty - 1)}>−</button>
                     <span>{e.qty}</span>
                     <button className="ghost icon sm" onClick={() => coll.setQty(e.key, e.qty + 1)}>+</button>
-                    <button className={`ghost icon sm${e.foil ? ' foil-on' : ''}`} title="Toggle foil" onClick={() => coll.setFoil(e.key, !e.foil)}>✨</button>
                     <button className="ghost icon sm danger" title="Remove" onClick={() => coll.remove(e.key)}>✕</button>
                   </div>
                   <select className="bin-select" value={e.bin || 'unsorted'} onChange={(ev) => coll.setBin(e.key, ev.target.value)} title="Move to bin">
