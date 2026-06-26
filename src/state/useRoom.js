@@ -1,13 +1,16 @@
 // Realtime room hook for online play.
 //
 // Transport: a single Supabase Realtime channel `room:<CODE>` per game.
-//  - presence  -> who is connected (members list, seat release on leave)
+//  - presence  -> who is connected (members; one is flagged `host`)
 //  - broadcast 'action'   -> a game action to apply on every client
-//  - broadcast 'request_snapshot' / 'snapshot' -> late-joiner state sync
+//  - broadcast 'request_snapshot' / 'snapshot' -> late-joiner / reconnect sync
 //
-// Deliberately uses NO database table: online play needs only the anon key
-// (Realtime is on by default). The host holds the authoritative state and
-// answers snapshot requests; if everyone disconnects the game simply ends.
+// No database table: online play needs only the anon key. The "host" holds the
+// authoritative copy and answers snapshot requests — BUT host is migratable:
+// every client applies the same actions, so each has the full shared state. If
+// the current host leaves, the lowest-key surviving member promotes itself, so
+// the game survives anyone (incl. the original host) dropping. It only ends when
+// the last player leaves.
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { supabase, isCloud } from '../lib/supabase.js'
@@ -21,6 +24,7 @@ export function useRoom({ code, identity, isHost, initialState }) {
   const channelRef = useRef(null)
   const stateRef = useRef(state)
   stateRef.current = state
+  const amHost = useRef(!!isHost) // migratable host flag
 
   // Apply locally + tell everyone else. Used for every player action.
   const act = useCallback((action) => {
@@ -37,18 +41,16 @@ export function useRoom({ code, identity, isHost, initialState }) {
     })
     channelRef.current = channel
 
+    const track = () => channel.track({ name: identity.name, key: identity.key, host: amHost.current, at: Date.now() })
+
     channel.on('broadcast', { event: 'action' }, ({ payload }) => {
       if (payload?.action) dispatch(payload.action)
     })
 
     channel.on('broadcast', { event: 'request_snapshot' }, ({ payload }) => {
-      // only the host answers, to avoid a storm of duplicate snapshots
-      if (isHost && stateRef.current) {
-        channel.send({
-          type: 'broadcast',
-          event: 'snapshot',
-          payload: { state: stateRef.current, to: payload.from },
-        })
+      // the current host answers (avoids duplicate snapshot storms)
+      if (amHost.current && stateRef.current) {
+        channel.send({ type: 'broadcast', event: 'snapshot', payload: { state: stateRef.current, to: payload.from } })
       }
     })
 
@@ -64,20 +66,33 @@ export function useRoom({ code, identity, isHost, initialState }) {
       const presence = channel.presenceState()
       const list = Object.entries(presence).map(([key, metas]) => ({ key, ...(metas[0] || {}) }))
       setMembers(list)
+
+      // host election: if nobody currently advertises host, the lowest-key
+      // surviving member (that has state) promotes itself.
+      const someHost = list.some((m) => m.host)
+      if (!someHost && list.length) {
+        const lowest = list.map((m) => m.key).sort()[0]
+        if (lowest === identity.key && stateRef.current && !amHost.current) {
+          amHost.current = true
+          track()
+        }
+      } else if (amHost.current) {
+        // resolve a brief split (two hosts) deterministically: lowest key keeps it
+        const hostKeys = list.filter((m) => m.host).map((m) => m.key).sort()
+        if (hostKeys.length > 1 && hostKeys[0] !== identity.key) { amHost.current = false; track() }
+      }
     })
 
     channel.on('presence', { event: 'leave' }, ({ key }) => {
-      // host frees any seats the departing player was holding
-      if (isHost) act(actions.releaseSeats(key))
+      if (amHost.current) act(actions.releaseSeats(key)) // free the departed player's seats
     })
 
-    channel.subscribe(async (status) => {
-      if (status !== 'SUBSCRIBED' || cancelled) return
-      await channel.track({ name: identity.name, key: identity.key, at: Date.now() })
-      if (isHost) {
-        setStatus('connected')
-      } else {
-        // ask the host for the current board
+    channel.subscribe(async (st) => {
+      if (st !== 'SUBSCRIBED' || cancelled) return
+      await track() // also re-runs on auto-reconnect → re-announces presence
+      setStatus('connected')
+      // get the current board if we don't have it yet (late join or reconnect)
+      if (!stateRef.current) {
         channel.send({ type: 'broadcast', event: 'request_snapshot', payload: { from: identity.key } })
       }
     })
@@ -88,7 +103,7 @@ export function useRoom({ code, identity, isHost, initialState }) {
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, isHost, identity.key, identity.name])
+  }, [code, identity.key, identity.name])
 
   return { state, act, members, status }
 }
