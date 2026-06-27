@@ -454,13 +454,23 @@ input:focus, textarea:focus, select:focus {
 .scan-stage { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .scan-video-wrap { position: relative; width: 100%; max-width: 520px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 3/4; }
 .scan-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-video-wrap { cursor: pointer; }
 .scan-guide { position: absolute; inset: 0; pointer-events: none; }
+.scan-card-frame { position: absolute; inset: 3% 4%; border: 2px dashed rgba(244,184,96,0.7); border-radius: 12px; }
+.scan-hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--accent-2); text-shadow: 0 1px 3px #000; }
+.scan-mode { display: inline-flex; border: 1px solid var(--border-2); border-radius: 20px; overflow: hidden; }
+.scan-mode button { border: none; border-radius: 0; background: transparent; padding: 4px 11px; font-size: 12px; color: var(--text-dim); }
+.scan-mode button.on { background: var(--accent); color: #1a1208; font-weight: 700; }
+.scan-auto { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-dim); }
+.scan-auto input { width: auto; }
 .scan-band {
   position: absolute; border: 2px solid var(--accent-2); border-radius: 6px;
   box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;
 }
 .scan-band span { font-size: 11px; color: var(--accent-2); background: rgba(0,0,0,0.5); padding: 1px 6px; border-radius: 10px; }
+.scan-band.bottom { border-color: var(--accent); border-style: dashed; }
+.scan-band.bottom span { color: var(--accent); }
 .scan-camerr { text-align: center; color: var(--text-dim); padding: 40px 20px; max-width: 420px; margin: 0 auto; }
 .scan-camerr .big { font-size: 44px; margin-bottom: 10px; }
 
